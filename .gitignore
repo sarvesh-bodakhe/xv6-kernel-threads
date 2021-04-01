@@ -14,3 +14,7 @@ kernel
 kernelmemfs
 mkfs
 .gdbinit
+cscope.out
+tags
+fmt
+.usertests.c.swp

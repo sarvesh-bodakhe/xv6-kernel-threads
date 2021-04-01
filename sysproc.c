@@ -1,3 +1,5 @@
+// TODO: add sys_clone() here
+
 #include "types.h"
 #include "x86.h"
 #include "defs.h"
@@ -6,6 +8,20 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+
+int sys_clone(void)
+{
+  // cprintf("in sys_proc.c . int sys_clone(void). Stack should not be created here.get from argument or using argint/functions defined in syscall.c I guess!! Calling int clone(char*) from proc.c\n");
+  void  (*fun_ptr)(void*);
+  void *argv;
+  void *stack_ptr;
+  if(argptr(0,(void*)&fun_ptr, sizeof(void*)) < 0) return -1;
+  if(argptr(1,(void*)&argv, sizeof(void*)) < 0) return -1;
+  if (argptr(2,(void*)&stack_ptr, sizeof(void*)) < 0) return -1;
+  cprintf("\tIn sys_clone():fun_ptr:%p argv:%p stack_ptr:%p\n", fun_ptr, argv, stack_ptr);
+  return clone(fun_ptr, argv, stack_ptr);
+  // return -1;
+}
 
 int
 sys_fork(void)
@@ -89,3 +105,5 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+

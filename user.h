@@ -1,3 +1,5 @@
+// TODO: add system calls and user functions for threading
+
 struct stat;
 struct rtcdate;
 
@@ -24,6 +26,9 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 
+// Thread related system calls
+int clone(void(*fun)(void*),void *argv, void *stack);
+
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);
@@ -37,3 +42,6 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+
+// Thread related user methods
+int thread_create(void (*fun)(void*), void *argv);

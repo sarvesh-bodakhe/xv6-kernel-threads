@@ -532,3 +532,36 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+    /* Pseudo code:
+     * Kernel stack is allocated by allocproc(). Allocate user stack.
+     * */
+int clone(void (*fun)(void*), void* argv,void *stack){
+    cprintf("in proc.c: int clone(void (*fun)(void*), void* argv,void *stack):\n");
+        
+    // int pid;            // Also thread_id. now same
+    // struct proc *new_thread;
+    // struct proc *parent_thread = myproc();
+    
+    // if((new_thread = allocproc() == 0)){
+    //     cprintf("allocproc failed.\n");
+    //     return -1;
+    // }
+    /*  
+     *  new_thread->parent_thread = parent_thread;
+     *  parent_thread->child_threads_count++;
+     *  add_thread(&parent_thread, new_thread); // linked_list/cicular
+     *  
+     *  new_thread->pgdir = parent_thread->pgdir;
+     *  *new_thread->tf = *parent_thread->tf;
+     *  *new_thread->tf->esp = stack+PGSIZE;
+     *  *new_thread->tf->eip = fun;
+     *  
+     *  new_thread->tf->eax = 0;
+     *  Copy open files
+     *  pid = new_thread->pid;
+     *  new_thread->state = RUNNABLE;
+     *  return pid;
+     * */
+    return -1;
+}
