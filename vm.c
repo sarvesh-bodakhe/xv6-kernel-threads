@@ -398,7 +398,6 @@ uva2ka(pde_t *pgdir, char *uva)
 int
 copyout(pde_t *pgdir, uint va, void *p, uint len)
 {
-  // cprintf("In copyout: va:%d p:%p len:%d\n", va, p, len);
   char *buf, *pa0;
   uint n, va0;
 

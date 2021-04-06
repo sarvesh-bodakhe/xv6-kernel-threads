@@ -120,10 +120,8 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
-//Thread related
+
 int             clone(void (*fun)(void*),void *argv,void *stack);
-
-
 // swtch.S
 void            swtch(struct context**, struct context*);
 

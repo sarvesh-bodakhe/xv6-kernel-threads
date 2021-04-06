@@ -21,6 +21,4 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 
-
-// System calls for threads
 #define SYS_clone  22

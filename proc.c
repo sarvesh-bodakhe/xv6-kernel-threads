@@ -19,7 +19,6 @@ extern void forkret(void);
 extern void trapret(void);
 extern void cloneret(void);
 
-
 static void wakeup1(void *chan);
 
 void
@@ -592,12 +591,6 @@ procdump(void)
   }
 }
 
-
-
-
-    /* Pseudo code:
-     * Kernel stack is allocated by allocproc(). Allocate user stack.
-     * */
 int clone(void (*fun)(void*), void* argv,void *stack){
     cprintf("in proc.c: int clone(void (*fun)(void*), void* argv,void *stack):\n");
     int pid;
@@ -629,7 +622,7 @@ int clone(void (*fun)(void*), void* argv,void *stack){
     new_thread->sz = new_thread->sz + PGSIZE;
     cprintf("New Process Size:%d\n", new_thread->sz);
 
-
+        
     
     // cprintf("Creating space for userStack(2 Pages)\n");
     // if((sz = allocuvm(new_thread->pgdir, sz, sz + 2*PGSIZE)) == 0){

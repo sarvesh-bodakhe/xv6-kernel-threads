@@ -52,7 +52,6 @@ struct proc {
   int child_threads_count;      // Child threads count
   int *child_threads;           // Array of child thread_pid's
   struct proc *parent_thread;   // Pointer to parent thread. Different than parent process pointer  . NULL value for parent thread of a process
-
 };
 
 // Process memory is laid out contiguously, low addresses first:

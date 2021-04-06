@@ -103,9 +103,7 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
-// Thread related
 extern int sys_clone(void);
-
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -129,25 +127,16 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-
-// Thread related entry
 [SYS_clone]   sys_clone,
 };
 
 void
 syscall(void)
 {
-
-    // vector.S: jmp alltraps ->
-    // trapasm.S: build trapframe on kernel stack. switch to kernel mode. calls trap: call trap
-    // trap.c: in function trap(trapframe *tf) myproc()->tf = tf; call syscall(): 
-    // then control comes here. trapframe is builed on stack at myproc()->tf;
-    //cprintf("in syscall(). see if code gets here\n");
   int num;
   struct proc *curproc = myproc();
    
   num = curproc->tf->eax;
-  // if(num == 22) cprintf("in syscall.c: void syscall(void) function. sys_call num:%d. calling sys_clone(void)\n", num);
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     curproc->tf->eax = syscalls[num]();
   } else {
