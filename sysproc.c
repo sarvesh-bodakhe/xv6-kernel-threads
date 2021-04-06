@@ -20,7 +20,8 @@ int sys_clone(void)
   if (argptr(2,(void*)&stack_ptr, sizeof(void*)) < 0) return -1;
   cprintf("\tIn sys_clone():fun_ptr:%p argv:%p stack_ptr:%p\n", fun_ptr, argv, stack_ptr);
   return clone(fun_ptr, argv, stack_ptr);
-  // return -1;
+  
+  
 }
 
 int

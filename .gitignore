@@ -17,4 +17,5 @@ mkfs
 cscope.out
 tags
 fmt
-.usertests.c.swp
+*.swp
+*.swo

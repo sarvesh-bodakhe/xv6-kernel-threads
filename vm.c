@@ -344,6 +344,39 @@ bad:
   return 0;
 }
 
+void add_PTE(pde_t *pgdir,void* va, uint sz,void* pa, uint flags){
+    mappages(pgdir, (void*)va, sz, V2P(pa), flags);
+}
+
+// Given a parent therad's page table, create a new page directory for
+// child thread and map virtual addresses to same physical addresses as parent
+pde_t *copyuvm_thread(pde_t *pgdir, uint sz){
+    pde_t *d;
+    pde_t *pte; 
+    uint pa, i, flags;
+    
+    
+    if((d = setupkvm()) == 0){
+        return 0;
+    }
+    for(i=0; i<sz; i+=PGSIZE){
+        if((pte = walkpgdir(pgdir, (void*) i, 0)) == 0)
+            panic("copyuvm_thread: pte should exits");
+        if(!(*pte | PTE_P))
+            panic("copyuvm_thread: page not present");
+        pa  = PTE_ADDR(*pte);
+        flags = PTE_FLAGS(*pte);
+        if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0) {
+            goto bad;
+        }
+    }
+    return d;
+
+bad:
+        freevm(d);
+        return 0;
+}
+
 //PAGEBREAK!
 // Map user virtual address to kernel address.
 char*
@@ -365,6 +398,7 @@ uva2ka(pde_t *pgdir, char *uva)
 int
 copyout(pde_t *pgdir, uint va, void *p, uint len)
 {
+  // cprintf("In copyout: va:%d p:%p len:%d\n", va, p, len);
   char *buf, *pa0;
   uint n, va0;
 
