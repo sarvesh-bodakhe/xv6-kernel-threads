@@ -607,8 +607,8 @@ int clone(void (*fun)(void*), void* argv,void *stack){
         return -1;
     }
 
-    mappagesWrapper(new_thread->pgdir, (void*)new_thread->sz, PGSIZE, stack, PTE_W|PTE_U);
-    new_thread->sz = new_thread->sz + PGSIZE;
+    // mappagesWrapper(new_thread->pgdir, (void*)new_thread->sz, PGSIZE, stack, PTE_W|PTE_U);
+    // new_thread->sz = new_thread->sz + PGSIZE;
 
     uint ustack[2];
     ustack[0] = 0xffffffff;
@@ -622,7 +622,7 @@ int clone(void (*fun)(void*), void* argv,void *stack){
     new_thread->tf->eip = (uint)fun;
     new_thread->tf->eax = 0;
 
-    if(copyout(new_thread->pgdir, sp, ustack, 8) < 0){
+    if(copyout(new_thread->pgdir, new_thread->tf->esp, ustack, 8) < 0){
       cprintf("clone: copyout() failed\n");
       goto bad;
     }
