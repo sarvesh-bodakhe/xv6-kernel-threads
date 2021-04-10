@@ -15,8 +15,15 @@ int sys_clone(void)
   if(argptr(0,(void*)&fun_ptr, sizeof(void*)) < 0) return -1;
   if(argptr(1,(void*)&argv, sizeof(void*)) < 0) return -1;
   if (argptr(2,(void*)&stack_ptr, sizeof(void*)) < 0) return -1;
-  cprintf("\tIn sys_clone():fun_ptr:%p argv:%p stack_ptr:%p\n", fun_ptr, argv, stack_ptr);
   return clone(fun_ptr, argv, stack_ptr); 
+}
+
+int sys_join(void){
+    int thread_id;
+    void* join_ret;
+    if(argptr(0,(void*)&thread_id, sizeof(thread_id)) < 0) return -1;
+    if(argptr(1, (void*)&join_ret, sizeof(void**)) < 0) return -1;
+    return join(thread_id, join_ret);
 }
 
 int
@@ -101,5 +108,3 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
-
-

@@ -49,8 +49,6 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  int child_threads_count;      // Child threads count
-  int *child_threads;           // Array of child thread_pid's
   struct proc *parent_thread;   // Pointer to parent thread. Different than parent process pointer  . NULL value for parent thread of a process
 };
 

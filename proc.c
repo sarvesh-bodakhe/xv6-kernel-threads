@@ -17,7 +17,6 @@ static struct proc *initproc;
 int nextpid = 1;
 extern void forkret(void);
 extern void trapret(void);
-extern void cloneret(void);
 
 static void wakeup1(void *chan);
 
@@ -116,50 +115,6 @@ found:
   return p;
 }
 
-static struct proc*
-allocthread(void)
-{
-  struct proc *p;
-  char *sp;
-
-  acquire(&ptable.lock);
-
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == UNUSED)
-      goto found;
-
-  release(&ptable.lock);
-  return 0;
-
-found:
-  p->state = EMBRYO;
-  p->pid = nextpid++;
-
-  release(&ptable.lock);
-
-  // Allocate kernel stack.
-  if((p->kstack = kalloc()) == 0){
-    p->state = UNUSED;
-    return 0;
-  }
-  sp = p->kstack + KSTACKSIZE;
-
-  // Leave room for trap frame.
-  sp -= sizeof *p->tf;
-  p->tf = (struct trapframe*)sp;
-
-  // Set up new context to start executing at forkret,
-  // which returns to trapret.
-  sp -= 4;
-  *(uint*)sp = (uint)trapret;
-
-  sp -= sizeof *p->context;
-  p->context = (struct context*)sp;
-  memset(p->context, 0, sizeof *p->context);
-  p->context->eip = (uint)cloneret;
-
-  return p;
-}
 
 //PAGEBREAK: 32
 // Set up first user process.
@@ -276,7 +231,7 @@ exit(void)
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
-
+  // cprintf("Exiting process_id:%d  curproc->parent_thread->pid:%d\n", curproc->pid,curproc->parent_thread->pid);
   if(curproc == initproc)
     panic("init exiting");
 
@@ -296,16 +251,25 @@ exit(void)
   acquire(&ptable.lock);
 
   // Parent might be sleeping in wait().
-  wakeup1(curproc->parent);
+  if(curproc->parent_thread){
+    wakeup1(curproc->parent_thread);
+  }else {
+    wakeup1(curproc->parent);
+  }
+  
 
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->parent == curproc){
+    if(p->parent == curproc ){
       p->parent = initproc;
+    }
+    if(p->parent_thread == curproc){
+      p->parent = initproc;
+    }
       if(p->state == ZOMBIE)
         wakeup1(initproc);
-    }
   }
+  
 
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
@@ -356,6 +320,49 @@ wait(void)
     sleep(curproc, &ptable.lock);  //DOC: wait-sleep
   }
 }
+
+int join(int thread_id, void *join_ret){
+    struct proc *p;
+    int haveKids, pid;
+    struct proc *curproc = myproc();
+    acquire(&ptable.lock);
+    for(;;){
+      haveKids = 0;
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+        if(p->parent_thread != curproc && p->pid != thread_id) 
+          continue;
+        // cprintf("in join(): childThread found: p->pid:%d\n", p->pid);
+        haveKids = 1;
+        if(p->state == ZOMBIE){
+          // cprintf("in join():child(pid:%d) has executed completely. Cleaning child thread\n", p->pid);
+          pid = p->pid;
+          //TODO: Remove Error here
+          // kfree((char*)p->kstack);
+          p->kstack = 0;
+          //TODO: Remove Error here
+          // freevm(p->pgdir);
+          p->pid = 0;
+          p->parent = 0;
+          p->parent_thread = 0;
+          p->name[0] = 0;
+          p->killed = 0;
+          p->state = UNUSED;
+          release(&ptable.lock);
+          return pid;
+        }
+      }
+
+      if(!haveKids || curproc->killed){
+        release(&ptable.lock);
+        return -1;
+      }
+      // cprintf("in join(): childThread is still executing. Calling sleep on parentThread\n", curproc->pid);
+      sleep(curproc, &ptable.lock);
+    }
+    return -1;
+}
+
+
 
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
@@ -458,18 +465,6 @@ forkret(void)
   // Return to "caller", actually trapret (see allocproc).
 }
 
-void cloneret(void){
-    static int first = 0;
-    release(&ptable.lock);
-    if(first){
-        first = 0;
-        iinit(ROOTDEV);
-        initlog(ROOTDEV);
-    }
-    cprintf("in cloneret()\n");
-
-}
-
 // Atomically release lock and sleep on chan.
 // Reacquires lock when awakened.
 void
@@ -516,10 +511,11 @@ static void
 wakeup1(void *chan)
 {
   struct proc *p;
-
+  
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+    if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
+    } 
 }
 
 // Wake up all processes sleeping on chan.
@@ -592,92 +588,59 @@ procdump(void)
 }
 
 int clone(void (*fun)(void*), void* argv,void *stack){
-    cprintf("in proc.c: int clone(void (*fun)(void*), void* argv,void *stack):\n");
     int pid;
     struct proc *new_thread;
     struct proc *parent_thread = myproc();
 
-    if((new_thread = allocthread()) == 0){
-        cprintf("allocproc failed\n");
+    if((new_thread = allocproc()) == 0){
+        panic("allocproc failed\n");
         return -1;
     }
-
+    
     new_thread->parent_thread = parent_thread;
     new_thread->sz = parent_thread->sz;
-    
+
     if( (new_thread->pgdir = copyuvm_thread(parent_thread->pgdir, parent_thread->sz)) == 0){
         kfree(new_thread->kstack);
         new_thread->kstack = 0;
         new_thread->state = UNUSED;
         return -1;
     }
-    uint sz;
-    sz = new_thread->sz;
-    sz = PGROUNDUP(sz);
 
-    cprintf("copied parent threads mappings into newly created page directory for new_thread\n");
-    add_PTE(new_thread->pgdir, (void*)new_thread->sz, PGSIZE, stack, PTE_W|PTE_U);
-    cprintf("added mapping for stack\n");
-    cprintf("Old Process Size:%d ", new_thread->sz);
+    mappagesWrapper(new_thread->pgdir, (void*)new_thread->sz, PGSIZE, stack, PTE_W|PTE_U);
     new_thread->sz = new_thread->sz + PGSIZE;
-    cprintf("New Process Size:%d\n", new_thread->sz);
 
-        
-    
-    // cprintf("Creating space for userStack(2 Pages)\n");
-    // if((sz = allocuvm(new_thread->pgdir, sz, sz + 2*PGSIZE)) == 0){
-    //     panic("allocuvm: failed\n");
-    //     goto bad; 
-    // }
-    //make page  inaccessible
-    // clearpteu(new_thread->pgdir, (char*)(sz - 2*PGSIZE));
-    // cprintf("sz:%d new_thread->sz:%d\n", sz, new_thread->sz);
-
-
-    // new_thread->sz = sz;
     uint ustack[2];
     ustack[0] = 0xffffffff;
     ustack[1] = (uint)argv;
-    cprintf("Sizeof ustack:%d\n", sizeof(ustack));
 
     *new_thread->tf = *parent_thread->tf;
     
     uint sp = (uint)stack + PGSIZE;
+    new_thread->tf->esp = sp;
     new_thread->tf->esp -= 8;
-    
+    new_thread->tf->eip = (uint)fun;
+    new_thread->tf->eax = 0;
+
     if(copyout(new_thread->pgdir, sp, ustack, 8) < 0){
       cprintf("clone: copyout() failed\n");
       goto bad;
     }
-    new_thread->tf->esp = (uint)sp;
-    new_thread->tf->eip = (uint)fun;
-    new_thread->tf->eax = 0;
-    
+        
     for(uint i = 0; i < NOFILE; i++)
 	    if(parent_thread->ofile[i])
 	      new_thread->ofile[i] = filedup(parent_thread->ofile[i]);
 	  new_thread->cwd = idup(parent_thread->cwd);
 
     pid = new_thread->pid;
-    // cprintf("Making new_thread RUNNABLE: pid:%d\n", pid);
-
     acquire(&ptable.lock);
     new_thread->state = RUNNABLE;
     release(&ptable.lock);
+    return pid;
 
-    parent_thread->child_threads_count++;
-    cprintf("Thread made runnable. Returning pid=%d\n", pid);
-    
-return pid;
-
-bad:
-  cprintf("In bad:\n");
-  
-  cprintf("In bad2:\n");
-  return -1;
-
-  
-
-
-
+  bad:
+    return -1;
 }
+
+
+

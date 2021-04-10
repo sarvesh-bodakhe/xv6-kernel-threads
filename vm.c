@@ -329,9 +329,9 @@ copyuvm(pde_t *pgdir, uint sz)
       panic("copyuvm: page not present");
     pa = PTE_ADDR(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
+      if((mem = kalloc()) == 0)
       goto bad;
-    memmove(mem, (char*)P2V(pa), PGSIZE);
+      memmove(mem, (char*)P2V(pa), PGSIZE);
     if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0) {
       kfree(mem);
       goto bad;
@@ -344,17 +344,16 @@ bad:
   return 0;
 }
 
-void add_PTE(pde_t *pgdir,void* va, uint sz,void* pa, uint flags){
+void mappagesWrapper(pde_t *pgdir,void* va, uint sz,void* pa, uint flags){
     mappages(pgdir, (void*)va, sz, V2P(pa), flags);
 }
 
-// Given a parent therad's page table, create a new page directory for
+// Given a parent therad's page table, create a new page directory and page tables for
 // child thread and map virtual addresses to same physical addresses as parent
 pde_t *copyuvm_thread(pde_t *pgdir, uint sz){
     pde_t *d;
     pde_t *pte; 
     uint pa, i, flags;
-    
     
     if((d = setupkvm()) == 0){
         return 0;
@@ -366,15 +365,20 @@ pde_t *copyuvm_thread(pde_t *pgdir, uint sz){
             panic("copyuvm_thread: page not present");
         pa  = PTE_ADDR(*pte);
         flags = PTE_FLAGS(*pte);
+        /*  1.  copyumv for process would have allocated a new page using kalloc()
+                and copied the contents of physical page at "pa" into this newly allocated page using memmove()
+            2.  Thread will only add proper mapping in its process virtual memory pointing to the same page at "pa".
+                (a lightweight process)
+        */
         if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0) {
             goto bad;
         }
     }
     return d;
 
-bad:
-        freevm(d);
-        return 0;
+  bad:
+    freevm(d);
+    return 0;
 }
 
 //PAGEBREAK!

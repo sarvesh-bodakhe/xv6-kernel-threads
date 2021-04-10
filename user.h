@@ -25,6 +25,7 @@ int sleep(int);
 int uptime(void);
 
 int clone(void(*fun)(void*),void *argv, void *stack);
+int join(int thread_id, void *join_ret);
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);
@@ -40,3 +41,4 @@ void free(void*);
 int atoi(const char*);
 
 int thread_create(void (*fun)(void*), void *argv);
+int thread_join(int thread_id, void **thread_return);
