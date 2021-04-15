@@ -596,7 +596,7 @@ int clone(void (*fun)(void*), void* argv,void *stack){
         panic("allocproc failed\n");
         return -1;
     }
-    
+
     new_thread->parent_thread = parent_thread;
     new_thread->sz = parent_thread->sz;
 
@@ -606,9 +606,6 @@ int clone(void (*fun)(void*), void* argv,void *stack){
         new_thread->state = UNUSED;
         return -1;
     }
-
-    // mappagesWrapper(new_thread->pgdir, (void*)new_thread->sz, PGSIZE, stack, PTE_W|PTE_U);
-    // new_thread->sz = new_thread->sz + PGSIZE;
 
     uint ustack[2];
     ustack[0] = 0xffffffff;
@@ -626,7 +623,7 @@ int clone(void (*fun)(void*), void* argv,void *stack){
       cprintf("clone: copyout() failed\n");
       goto bad;
     }
-        
+    
     for(uint i = 0; i < NOFILE; i++)
 	    if(parent_thread->ofile[i])
 	      new_thread->ofile[i] = filedup(parent_thread->ofile[i]);
