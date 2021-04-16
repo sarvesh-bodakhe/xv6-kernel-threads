@@ -3,35 +3,30 @@
 #include "user.h"
 #include "fs.h"
 
-void fun(void){
-    printf(1, "In Child Thread. Executing function [sleep(200)]\n");
+void fun(void* argv){
+    printf(1, "fun() start\n");
     sleep(200);
-    printf(1, "Exiting Child Thread\n");
+    printf(1, "Exiting fun()\n");
+    exit();
+}
+
+void fun2(void* argv){
+    printf(1, "fun2() start\n");
+    sleep(200);
+    printf(1, "Exiting fun2()\n");
     exit();
 }
 
 int main(){
-    void (*funptr)(void) = &fun;
-    char *stack_ptr = (char*)malloc(4096);
-    void *argv = 0;
-    
-    int clone_ret = clone((void*)funptr, (void*) argv,(void*)stack_ptr);
-    if(clone_ret < 0)
-    {
-        printf(1, "clone failed");
-        exit();
-    }
-    else if(clone_ret > 0)
-    {
-        int join_ret;
-        if(join(clone_ret, (void*)&join_ret) < 0)
-        {
-            printf(1, "join filed\n");
-        }else
-        {    
-            printf(1, "In Parent thread. After Join\n"); 
-        }
-    }
-    
+    void (*funptr)(void*) = &fun;
+    int num = 10;
+    printf(1, "Calling thread_create()\n");
+    int join_ret;
+    int t1 = thread_create((void*)funptr, (void*)&num);
+    thread_join(t1, &join_ret);
+    funptr = &fun2;
+    int t2= thread_create((void*)funptr, &num);
+    thread_join(t2, &join_ret);
+    printf(1, "Exiting Parent thread\n");
     exit();
 }

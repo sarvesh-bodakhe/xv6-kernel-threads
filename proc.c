@@ -334,12 +334,10 @@ int join(int thread_id, void *join_ret){
         // cprintf("in join(): childThread found: p->pid:%d\n", p->pid);
         haveKids = 1;
         if(p->state == ZOMBIE){
-          // cprintf("in join():child(pid:%d) has executed completely. Cleaning child thread\n", p->pid);
           pid = p->pid;
-          //TODO: Remove Error here
-          // kfree((char*)p->kstack);
+          kfree((char*)p->kstack);
           p->kstack = 0;
-          //TODO: Remove Error here
+          //TODO: Some checks to be done
           // freevm(p->pgdir);
           p->pid = 0;
           p->parent = 0;
