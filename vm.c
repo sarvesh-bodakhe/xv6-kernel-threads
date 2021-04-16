@@ -344,10 +344,6 @@ bad:
   return 0;
 }
 
-void mappagesWrapper(pde_t *pgdir,void* va, uint sz,void* pa, uint flags){
-    mappages(pgdir, (void*)va, sz, V2P(pa), flags);
-}
-
 // Given a parent therad's page table, create a new page directory and page tables for
 // child thread and map virtual addresses to same physical addresses as parent
 pde_t *copyuvm_thread(pde_t *pgdir, uint sz){
@@ -380,7 +376,6 @@ pde_t *copyuvm_thread(pde_t *pgdir, uint sz){
     freevm(d);
     return 0;
 }
-
 //PAGEBREAK!
 // Map user virtual address to kernel address.
 char*

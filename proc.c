@@ -115,7 +115,6 @@ found:
   return p;
 }
 
-
 //PAGEBREAK: 32
 // Set up first user process.
 void
