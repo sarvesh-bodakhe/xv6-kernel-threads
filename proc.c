@@ -236,8 +236,8 @@ exit(void)
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
-  // cprintf("Exiting curproc->tid:%d curproc->pid:%d  curproc->parent->pid:%d curproc->parent->tid:%d\n", curproc->tid, curproc->pid, curproc->parent->pid, curproc->parent->tid);
-  cprintf("exit(): pid:%d tid:%d\n", curproc->pid, curproc->tid);
+
+  // cprintf("exit(): pid:%d tid:%d\n", curproc->pid, curproc->tid);
   if(curproc == initproc)
     panic("init exiting");
 
@@ -269,7 +269,7 @@ exit(void)
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc ){
-      cprintf("exit(): (tid:%d)->parent == currproc(tid:%d)\n", p->tid, curproc->tid);
+      // cprintf("exit(): (tid:%d)->parent == currproc(tid:%d)\n", p->tid, curproc->tid);
       p->parent = initproc;
     }
     // if(p->parent_thread == curproc){
@@ -281,8 +281,7 @@ exit(void)
   
 
   // Jump into the scheduler, never to return.
-  cprintf("making (tid:%d, pid:%d) state ZOMBIE\n", curproc->tid, curproc->pid);
-  // cprintf("exit(): making tid(%d)->state = ZOMBIE\n", curproc->tid);
+  // cprintf("making (tid:%d, pid:%d) state ZOMBIE\n", curproc->tid, curproc->pid);
   curproc->state = ZOMBIE;
   sched();
   panic("zombie exit");
@@ -339,7 +338,7 @@ int join(int thread_id, void *join_ret){
     struct proc *p;
     int haveKids, tid;
     struct proc *curproc = myproc();
-    cprintf("join(): curproc->tid: %d thread_id:%d\n", curproc->tid, thread_id);
+    // cprintf("join(): curproc->tid: %d thread_id:%d\n", curproc->tid, thread_id);
     acquire(&ptable.lock);
     for(;;){
       haveKids = 0;
@@ -348,11 +347,11 @@ int join(int thread_id, void *join_ret){
         //   continue;
         if(p->tid != thread_id ) 
           continue;
-        // cprintf("join(): childThread found: p->tid:%d\n", p->tid);
+
         haveKids = 1;
         p->join_caller = curproc;
         if(p->state == ZOMBIE){
-          cprintf("join(): childThread(tid:%d) has run completely\n", p->tid);
+          // cprintf("join(): childThread(tid:%d) has run completely\n", p->tid);
           // pid = p->pid;
           tid = p->tid;
           kfree((char*)p->kstack);
@@ -379,7 +378,7 @@ int join(int thread_id, void *join_ret){
         release(&ptable.lock);
         return -1;
       }
-      cprintf("join(): childThread is still executing. Calling sleep on parentThread(tid:%d)\n", curproc->tid);
+      // cprintf("join(): childThread is still executing. Calling sleep on parentThread(tid:%d)\n", curproc->tid);
       sleep(curproc, &ptable.lock);
     }
     return -1;
@@ -639,7 +638,7 @@ int clone(void (*fun)(void*), void* argv,void *stack, int flags){
     int tid;
     struct proc *np;
     struct proc *curproc = myproc();
-    cprintf("clone(): flags: %d\n", flags);
+    // cprintf("clone(): flags: %d\n", flags);
     if((np = allocproc()) == 0){
         panic("allocproc failed\n");
         return -1;

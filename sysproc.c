@@ -38,7 +38,7 @@ int sys_gettid(void){
   return myproc()->tid;
 }
 
-int getppid(void){
+int sys_getppid(void){
   return myproc()->parent->pid;
 }
 int
