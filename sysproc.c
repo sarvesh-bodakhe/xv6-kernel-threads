@@ -12,10 +12,12 @@ int sys_clone(void)
   void  (*fun_ptr)(void*);
   void *argv;
   void *stack_ptr;
+  int flags; 
   if(argptr(0,(void*)&fun_ptr, sizeof(void*)) < 0) return -1;
   if(argptr(1,(void*)&argv, sizeof(void*)) < 0) return -1;
   if (argptr(2,(void*)&stack_ptr, sizeof(void*)) < 0) return -1;
-  return clone(fun_ptr, argv, stack_ptr); 
+  if(argint(3, &flags) < 0) return -1;
+  return clone(fun_ptr, argv, stack_ptr, flags);
 }
 
 int sys_join(void){
@@ -26,6 +28,19 @@ int sys_join(void){
     return join(thread_id, join_ret);
 }
 
+int sys_tkill(void){
+  int tid;
+  if(argptr(0,(void*)&tid, sizeof(tid)) < 0) return -1;
+  return tkill(tid);
+}
+
+int sys_gettid(void){
+  return myproc()->tid;
+}
+
+int getppid(void){
+  return myproc()->parent->pid;
+}
 int
 sys_fork(void)
 {

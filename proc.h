@@ -40,8 +40,6 @@ struct proc {
   pde_t* pgdir;                // Page table
   char *kstack;                // Bottom of kernel stack for this process
   enum procstate state;        // Process state
-  int pid;                     // Process ID
-  struct proc *parent;         // Parent process
   struct trapframe *tf;        // Trap frame for current syscall
   struct context *context;     // swtch() here to run process
   void *chan;                  // If non-zero, sleeping on chan
@@ -49,7 +47,12 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  struct proc *parent_thread;   // Pointer to parent thread. Different than parent process pointer  . NULL value for parent thread of a process
+  // struct proc *parent_thread;   // Pointer to parent thread. Different than parent process pointer  . NULL value for parent thread of a process
+  int pid; // Process ID
+  int tid; // Thread ID Needs to be unique
+  struct proc *parent; // Parent process
+  struct proc *join_caller;
+  int shared_resources;
 };
 
 // Process memory is laid out contiguously, low addresses first:

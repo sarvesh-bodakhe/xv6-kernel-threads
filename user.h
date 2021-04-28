@@ -24,7 +24,10 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 
-int clone(void(*fun)(void*),void *argv, void *stack);
+int clone(void(*fun)(void*),void *argv, void *stack, int flags);
+int tkill(int tid);
+int gettid(void);
+int getppid(void);
 int join(int thread_id, void *join_ret);
 // ulib.c
 int stat(const char*, struct stat*);
@@ -42,3 +45,12 @@ int atoi(const char*);
 
 int thread_create(void (*fun)(void*), void *argv);
 int thread_join(int thread_id, void *thread_return);
+
+
+#define CLONE_THREAD    1
+#define CLONE_VM        2
+#define CLONE_PARENT    4
+#define CLONE_FS        8
+#define CLONE_FILES     16
+// #define CLONE_
+// #define CLONE_
