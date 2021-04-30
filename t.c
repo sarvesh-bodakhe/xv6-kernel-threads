@@ -89,7 +89,7 @@ void test_file(){
 
     char *stack1 = malloc(4096);
     // int tid1 = clone(test_file_util, 0, stack1, CLONE_THREAD | CLONE_VM );
-    int tid1 = clone(test_file_util, 0, stack1, CLONE_THREAD | CLONE_VM | CLONE_FILES);
+    int tid1 = clone(test_file_util, 0, stack1, CLONE_THREAD | CLONE_VM );
     join(tid1, 0);
     printf(1, "Exiting test_file()\n");
     exit();

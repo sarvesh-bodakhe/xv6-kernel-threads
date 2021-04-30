@@ -718,6 +718,13 @@ int clone(void (*fun)(void*), void* argv,void *stack, int flags){
         return -1;
     }
 
+  if(flags & CLONE_PARENT) {
+      np->parent = curproc->parent;
+    } else{
+      np->parent = curproc;
+    }
+    
+
     if(flags & CLONE_THREAD){
       /*  @desc: CLONE_THREAD flag set
             child is placed in the same thread group as the calling process.
@@ -746,11 +753,7 @@ int clone(void (*fun)(void*), void* argv,void *stack, int flags){
 
   // shared_resources
 
-    // if(flags & CLONE_PARENT) {
-    //   np->parent = curproc->parent;
-    // } else{
-    //   np->parent = curproc;
-    // }
+    
 
     
 
