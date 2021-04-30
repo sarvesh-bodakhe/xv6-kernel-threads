@@ -29,6 +29,7 @@ int tkill(int tid);
 int gettid(void);
 int getppid(void);
 int join(int thread_id, void *join_ret);
+int tgkill(int tgid, int tid);
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);

@@ -41,8 +41,11 @@ trap(struct trapframe *tf)
       exit();
     myproc()->tf = tf;
     syscall();
-    if(myproc()->killed)
+    if(myproc()->killed){
+      // cprintf("trap: (%d,%d,%d) killed\n", myproc()->tid, myproc()->pid, myproc()->parent->pid);
       exit();
+    }
+      
     return;
   }
 

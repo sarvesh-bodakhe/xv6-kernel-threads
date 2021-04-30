@@ -126,6 +126,7 @@ int             join(int, void*);
 int             tkill(int tid);
 int             gettid(void);
 int             getppid(void);
+int             tgkill(int tgid, int tid);
 // swtch.S
 void            swtch(struct context**, struct context*);
 

@@ -70,11 +70,20 @@ sys_kill(void)
   return kill(pid);
 }
 
+/* getpid(2) return the TGID of the caller. */
 int
 sys_getpid(void)
 {
   return myproc()->pid;
 }
+
+int sys_tgkill(void){
+    int tgid, tid;
+    if(argptr(0,(void*)&tgid, sizeof(tgid)) < 0) return -1;
+    if(argptr(1,(void*)&tid, sizeof(tid)) < 0) return -1;
+    return tgkill(tgid, tid);
+}
+
 
 int
 sys_sbrk(void)

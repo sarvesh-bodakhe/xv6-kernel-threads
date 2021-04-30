@@ -53,6 +53,7 @@ struct proc {
   struct proc *parent; // Parent process
   struct proc *join_caller;
   int shared_resources;
+  int flags;
 };
 
 // Process memory is laid out contiguously, low addresses first:
