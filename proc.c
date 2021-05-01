@@ -248,12 +248,12 @@ exit(void)
   struct proc *p;
   int fd;
 
-  cprintf("exit: (%d,%d,%d)\n", curproc->tid, curproc->pid, curproc->parent->pid);
-  cprintf("Open Files for curproc: ");
-    for(int i=0;i<NOFILE; i++){
-      cprintf("%p ", ((struct file*)(curproc->ofile[i])) );
-    }
-    cprintf("\n");
+  // cprintf("exit: (%d,%d,%d)\n", curproc->tid, curproc->pid, curproc->parent->pid);
+  // cprintf("Open Files for curproc: ");
+  //   for(int i=0;i<NOFILE; i++){
+  //     cprintf("%p ", ((struct file*)(curproc->ofile[i])) );
+  //   }
+  //   cprintf("\n");
   if(curproc == initproc)
     panic("init exiting");
 
@@ -281,6 +281,9 @@ exit(void)
     // cprintf("exit: (%d,%d,%d) was joining on (%d,%d,%d)\n", curproc->join_caller->tid, curproc->join_caller->pid, curproc->join_caller->parent->pid, curproc->tid, curproc->pid, curproc->parent->pid);
     wakeup1(curproc->join_caller);
   } 
+  else if(curproc->wait_caller){
+    wakeup1(curproc->wait_caller);
+  }
   else if(curproc->parent) {
     // cprintf("wakeup1(tid:%d, pid:%d)\n", curproc->parent->tid, curproc->parent->pid);
     wakeup1(curproc->parent);
@@ -331,9 +334,17 @@ wait(void)
     // Scan through table looking for exited children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != curproc)
+      if(p->parent->pid == curproc->pid){
+        // cprintf("wait: thread in tgid(%d) called wait on (%d,%d,%d)\n", curproc->pid,p->tid, p->tid, p->parent->pid);
+        p->wait_caller = curproc;
+      }
+      else if(p->parent != curproc)
         continue;
+      
+      //  if(p->parent != curproc)
+      //   continue;
       havekids = 1;
+      p->wait_caller = curproc;
       if(p->state == ZOMBIE){
         // Found one.
         pid = p->pid;
@@ -345,6 +356,8 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+        p->wait_caller = 0;
+        p->join_caller = 0;
         release(&ptable.lock);
         return pid;
       }
@@ -702,6 +715,26 @@ procdump(void)
   }
 }
 
+int tkillExceptLeader(int tgid){
+  struct proc *p;
+  cprintf("tkillExceptLeader: tgid:%d\n", tgid);
+  acquire(&ptable.lock);
+
+   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid == tgid && p->tid != tgid ){
+      // cprintf("tgkill: killing (%d,%d,%d)\n", p->tid, p->pid, p->parent->pid);
+      p->killed = 1;
+      // Wake process from sleep if necessary.
+      if(p->state == SLEEPING)
+        p->state = RUNNABLE;
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+  release(&ptable.lock);
+  return -1;
+}
+
 
 
 // If clone is called with CLONE_VM=0 &* CLONE_THREAD=0 then parent process must call wait() not join()
@@ -720,9 +753,9 @@ int clone(void (*fun)(void*), void* argv,void *stack, int flags){
 
   if(flags & CLONE_PARENT) {
       np->parent = curproc->parent;
-    } else{
+  } else{
       np->parent = curproc;
-    }
+  }
     
 
     if(flags & CLONE_THREAD){

@@ -52,6 +52,7 @@ struct proc {
   int tid; // Thread ID Needs to be unique
   struct proc *parent; // Parent process
   struct proc *join_caller;
+  struct proc *wait_caller;
   int shared_resources;
   int flags;
 };

@@ -93,6 +93,9 @@ exec(char *path, char **argv)
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
+  //Kill all other threads except leader
+  // tkillExceptLeader(curproc->pid);
+
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
