@@ -258,13 +258,20 @@ exit(void)
     panic("init exiting");
 
   // Close all open files.
-  if(!(curproc->flags & CLONE_FILES)){
-    // cprintf("exit: Files are not shared. closing files\n");
-    for(fd = 0; fd < NOFILE; fd++){
+  // if(!(curproc->flags & CLONE_FILES)){
+  //   // cprintf("exit: Files are not shared. closing files\n");
+  //   for(fd = 0; fd < NOFILE; fd++){
+  //   if(curproc->ofile[fd]){
+  //     fileclose(curproc->ofile[fd]);
+  //     curproc->ofile[fd] = 0;
+  //   }
+  //   }
+  // }
+
+  for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd]){
       fileclose(curproc->ofile[fd]);
       curproc->ofile[fd] = 0;
-    }
     }
   }
   
@@ -552,7 +559,7 @@ forkret(void)
     iinit(ROOTDEV);
     initlog(ROOTDEV);
   }
-  // cprintf("in forkret()\n");
+
   // Return to "caller", actually trapret (see allocproc).
 }
 
@@ -604,9 +611,8 @@ wakeup1(void *chan)
   struct proc *p;
   
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan){
+    if(p->state == SLEEPING && p->chan == chan)
       p->state = RUNNABLE;
-    } 
 }
 
 // Wake up all processes sleeping on chan.

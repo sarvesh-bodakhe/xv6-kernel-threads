@@ -95,26 +95,10 @@ sys_close(void)
 {
   int fd;
   struct file *f;
-  
+
   if(argfd(0, &fd, &f) < 0)
     return -1;
-  
-
-  // struct proc *curproc = myproc();
-  // cprintf("sys_close: Open Files before close: ");
-  //   for(int i=0;i<NOFILE; i++){
-  //     // if(curproc->ofile[i])
-  //      cprintf("%p ", (curproc->ofile[i]) );
-  //   }
-  //   cprintf("\n");
   myproc()->ofile[fd] = 0;
-  // cprintf("sys_close: (%d,%d,%d)\n", curproc->tid, curproc->pid, curproc->parent->pid);
-  // cprintf("sys_close: Open Files after close: ");
-    // for(int i=0;i<NOFILE; i++){
-    //   // if(curproc->ofile[i])
-    //    cprintf("%p ", (curproc->ofile[i]) );
-    // }
-    // cprintf("\n");
   fileclose(f);
   return 0;
 }
