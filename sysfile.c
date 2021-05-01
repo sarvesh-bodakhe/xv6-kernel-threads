@@ -16,6 +16,17 @@
 #include "file.h"
 #include "fcntl.h"
 
+#include "memlayout.h"
+// #include "mmu.h"
+#include "x86.h"
+// #include "proc.h"
+
+extern struct {
+  struct spinlock lock;
+  struct proc proc[NPROC];
+} ptable;
+
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int
@@ -42,14 +53,40 @@ fdalloc(struct file *f)
 {
   int fd;
   struct proc *curproc = myproc();
-
+  struct proc *p;
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd] == 0){
       curproc->ofile[fd] = f;
-      return fd;
+      // return fd;
+      break;
     }
   }
-  return -1;
+  if(fd >= NOFILE) return -1;
+
+  if(curproc->flags & CLONE_FILES){
+    acquire(&ptable.lock);
+    for(p = ptable.proc; p <= &ptable.proc[NPROC]; p++){
+      if((curproc->flags & CLONE_FILES) && (p->pid == curproc->pid)){
+        if(p->pid == p->tid){ //Thread is the leader of thread group. Descriptor table of this thread is shared in childs with CLONE_FILES
+        // cprintf("fdalloc currproc(%d,%d,%d):  p(%d,%d,%d) is a parent of thread group\n", curproc->tid, curproc->pid, curproc->parent->pid,p->tid, p->pid, p->parent->pid);
+          f->ref++;
+          p->ofile[fd] = f;
+          
+        }
+        else if((p->flags & CLONE_FILES) && (p->tid != curproc->tid)){ // Thread is a normal thread in thread group which was crated with CLONE_FILES
+        // cprintf("fdalloc currproc(%d,%d,%d):  p(%d,%d,%d) is a normal thread of thread group\n", curproc->tid, curproc->pid, curproc->parent->pid,p->tid, p->pid, p->parent->pid);
+          f->ref++;
+          p->ofile[fd] = f;
+          
+        }
+      }
+    }
+  release(&ptable.lock);
+  }
+  
+
+  return fd;
+  // return -1;
 }
 
 int
@@ -95,11 +132,31 @@ sys_close(void)
 {
   int fd;
   struct file *f;
-
   if(argfd(0, &fd, &f) < 0)
     return -1;
+  
+  struct proc *curproc = myproc(), *p;
+  // cprintf("sys_close: (%d,%d,%d) fd:%d\n", curproc->tid, curproc->pid, curproc->parent->pid, fd);
+  // closeFiles(curproc->pid, fd);
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p <= &ptable.proc[NPROC]; p++){
+    if((curproc->flags & CLONE_FILES) && (p->pid == curproc->pid)){
+      if(p->pid == p->tid){ //Thread is the leader of thread group. Descriptor table of this thread is shared in childs with CLONE_FILES
+      // cprintf("sys_close currproc(%d,%d,%d):  p(%d,%d,%d) is a parent of thread group\n", curproc->tid, curproc->pid, curproc->parent->pid,p->tid, p->pid, p->parent->pid);
+        p->ofile[fd] = 0;
+        fileclose(f);
+      }
+      else if((p->flags & CLONE_FILES) && (p->tid != curproc->tid)){ // Thread is a normal thread in thread group which was crated with CLONE_FILES
+      // cprintf("sys_close currproc(%d,%d,%d):  p(%d,%d,%d) is a normal thread of thread group\n", curproc->tid, curproc->pid, curproc->parent->pid,p->tid, p->pid, p->parent->pid);
+        p->ofile[fd] = 0;
+        fileclose(f);
+      }
+    }
+  }
+  release(&ptable.lock);
   myproc()->ofile[fd] = 0;
   fileclose(f);
+  
   return 0;
 }
 
@@ -440,5 +497,15 @@ sys_pipe(void)
   }
   fd[0] = fd0;
   fd[1] = fd1;
+  return 0;
+}
+
+int sys_printOpenFiles(void){
+  struct proc *curproc;
+  curproc = myproc();
+  cprintf("printOpenFiles: (%d,%d,%d): ", curproc->tid , curproc->pid , curproc->parent->pid);
+  for(int i=0; i<NOFILE; i++) 
+    if(curproc->ofile[i]) cprintf("%d:%p ", i,curproc->ofile[i]);
+  cprintf("\n");
   return 0;
 }

@@ -70,34 +70,68 @@ int  global_var;
 
 
 int fd1, fd2;
-void test_file_util(void *argv){
-    printf(1, "In function\n");
-    printInfo();
-    printf(1, "fd1:%d fd2:%d\n", fd1,fd2);
+
+void test_file_util1_close(void *argv){
+    // printf(1, "In function\n");
+    // printInfo();
+    // printf(1, "fd1:%d fd2:%d\n", fd1,fd2);
+    printOpenFiles();
     close(fd1);
+    // close(fd2);
+    // printf(1, "after close(%d)\n", fd1);
+    // printOpenFiles();
     sleep(50);
     exit();
+}
 
+void test_file_util1(void){
+    printInfo();
+    fd1 = open("README" , O_CREATE | O_RDWR);
+    // printf(1, "fd1:%d ", fd1);
+    fd2 = open("README2" , O_CREATE | O_RDWR);
+    // printf(1, "fd2:%d\n", fd2);
+    printOpenFiles();
+    char *stack1 = malloc(4096);
+    int tid1 = clone(&test_file_util1_close, 0, stack1, CLONE_THREAD | CLONE_VM | CLONE_FILES);
+    join(tid1, 0);
+    printf(1, "After join(%d)\n", tid1);
+    printOpenFiles();
+    // printf(1, "Exiting test_file()\n");
+    return;
+}
+
+void test_file_util1_open(void *argv){
+    printOpenFiles();
+    fd2 = open("README2" , O_CREATE | O_RDWR);
+    printOpenFiles();
+    // printf(1, "fd2:%d\n", fd2);
+    sleep(50);
+    // printOpenFiles();
+    exit();
+}
+
+void test_file_util2(void){
+    printInfo();
+    printf(1, "######### test_file_util2 START\n\n");
+    // fd1 = open("README" , O_CREATE | O_RDWR);
+    // printf(1, "fd1:%d ", fd1);
+    printOpenFiles();
+    char *stack1 = malloc(4096);
+    int tid1 = clone(&test_file_util1_open, 0, stack1, CLONE_THREAD | CLONE_VM | CLONE_FILES);
+    join(tid1, 0);
+    printf(1, "After join(%d)\n", tid1);
+    printOpenFiles();
+    printf(1, "\n\n######### test_file_util2 PASSED\n");
+    return;
 }
 
 void test_file(){
-    printInfo();
-    fd1 = open("README" , O_CREATE | O_RDWR);
-    printf(1, "fd1:%d\n", fd1);
-    fd2 = open("README2" , O_CREATE | O_RDWR);
-    printf(1, "fd2:%d\n", fd2);
-
-    char *stack1 = malloc(4096);
-    // int tid1 = clone(test_file_util, 0, stack1, CLONE_THREAD | CLONE_VM );
-    int tid1 = clone(test_file_util, 0, stack1, CLONE_THREAD | CLONE_VM );
-    join(tid1, 0);
-    printf(1, "Exiting test_file()\n");
-    exit();
+    test_file_util2();
 
 }
 
 int main(){
-    test_tgkill();
-    // test_file();
+    // test_tgkill();
+    test_file();
     exit();
 }

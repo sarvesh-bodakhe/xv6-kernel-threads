@@ -10,6 +10,17 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
+
+#define CLONE_THREAD 1
+#define CLONE_VM 2
+#define CLONE_PARENT 4
+#define CLONE_FS 8
+#define CLONE_FILES 16
+
+#define SHARED_VM     1
+#define SHARED_FS     2
+#define SHARED_FLIES  4
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);

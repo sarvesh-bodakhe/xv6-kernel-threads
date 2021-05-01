@@ -27,3 +27,4 @@
 #define SYS_gettid 25
 #define SYS_getppid 26
 #define SYS_tgkill  27
+#define SYS_printOpenFiles 28

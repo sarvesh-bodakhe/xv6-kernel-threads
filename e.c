@@ -121,7 +121,7 @@ void test3(void ){
 
 int main()
 {   
-    test3();
+    // test3();
     printf(1, "*** Exiting Main\n");
     exit();
 }

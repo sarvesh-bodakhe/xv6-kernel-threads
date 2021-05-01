@@ -35,3 +35,4 @@ SYSCALL(tkill)
 SYSCALL(gettid)
 SYSCALL(getppid)
 SYSCALL(tgkill)
+SYSCALL(printOpenFiles);
