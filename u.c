@@ -705,16 +705,40 @@ void test_CLONE_NOFLAGS(void){
 }
 
 void test_function(void *argv){
-
+    // printInfo();
+    sleep(10);
     exit();
 }
 
 void test_CLONE_VM_without_thread(){
-
+    printf(1, "using CLONE_VM without CLONE_THREAD flag: test\n");
+    pthread_t thread;
+    int ret = pthread_create(&thread, &test_function, 0, CLONE_VM);
+    if(ret < 0) printf(1, "using CLONE_VM without CLONE_THREAD flag: ok\n");
+    else printf(1, "using CLONE_VM without CLONE_THREAD flag: failed\n");
 }
 
 
 
+void test_join_threadNotFound(){
+    printf(1, "joining thread while thread with id not present : test\n");
+    pthread_t t;
+    pthread_create(&t, &test_function, 0, CLONE_THREAD | CLONE_VM);
+    int **retval=0;
+    if(pthread_join(t, (void**)retval) < 0) {
+        printf(1, "Join Error\n");
+        return;
+    }
+    int ret = pthread_join(t, (void**)retval) ;
+    switch(ret){
+        case ESRCH:
+            printf(1, "joining thread while thread with id not present : ok\n");
+            break;
+        default:
+            printf(1, "joining thread while thread with id not present : failed\n");
+
+    }
+}
 
 
 
@@ -734,11 +758,11 @@ int main(){
     
 
     //----------------
-    // test_CLONE_NOFLAGS();
+    test_CLONE_NOFLAGS();
     test_CLONE_FILES_01();
     test_CLONE_FS_01();
     test_CLONE_FS_02();
-    test_CLONE_VM_without_thread();
+    
     test_tgkill_01();
     test_tgkill_02();
     test_join01();
@@ -748,6 +772,8 @@ int main(){
     test_fork_wait_01();
     test_matrix_mul();
     test_pthread();
+    test_CLONE_VM_without_thread();
+    test_join_threadNotFound();
 
     
 

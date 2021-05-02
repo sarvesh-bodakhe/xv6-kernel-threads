@@ -22,9 +22,10 @@ struct superblock;
 #define SHARED_FLIES  4
 
 
-#define EDEADLK 0
+
 #define EINVAL 1
 #define ESRCH 2
+#define EDEADLK 3
 
 // bio.c
 void            binit(void);

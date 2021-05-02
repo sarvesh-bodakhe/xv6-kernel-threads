@@ -18,9 +18,10 @@ int pthread_create( pthread_t *thread, void(*fun)(void*), void *argv, int flags)
     return tid;
 }
 
-#define EDEADLK 0
-#define EINVAL 1
-#define ESRCH 2
+
+#define EINVAL 1    //Another thread is already waiting to join with this thread.
+#define ESRCH 2     // NO such thread
+#define EDEADLK 3   // Deadlock
 
 int pthread_join(pthread_t thread, void **retval){
 
