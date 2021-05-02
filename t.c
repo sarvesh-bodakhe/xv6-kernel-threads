@@ -85,6 +85,7 @@ void test_file_util1_close(void *argv){
 }
 
 void test_file_util1(void){
+    printf(1, "######### test_file_util1 START\n\n");
     printInfo();
     fd1 = open("README" , O_CREATE | O_RDWR);
     // printf(1, "fd1:%d ", fd1);
@@ -96,7 +97,7 @@ void test_file_util1(void){
     join(tid1, 0);
     printf(1, "After join(%d)\n", tid1);
     printOpenFiles();
-    // printf(1, "Exiting test_file()\n");
+    printf(1, "\n\n######### test_file_util1 PASSED\n\n");
     return;
 }
 
@@ -111,8 +112,8 @@ void test_file_util1_open(void *argv){
 }
 
 void test_file_util2(void){
-    printInfo();
     printf(1, "######### test_file_util2 START\n\n");
+    printInfo();
     // fd1 = open("README" , O_CREATE | O_RDWR);
     // printf(1, "fd1:%d ", fd1);
     printOpenFiles();
@@ -126,6 +127,7 @@ void test_file_util2(void){
 }
 
 void test_file(){
+    test_file_util1();
     test_file_util2();
 
 }

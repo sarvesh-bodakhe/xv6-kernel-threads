@@ -248,23 +248,23 @@ exit(void)
   if(curproc == initproc)
     panic("init exiting");
 
-  // Close all open files.
-  // if(!(curproc->flags & CLONE_FILES)){
-  //   // cprintf("exit: Files are not shared. closing files\n");
-  //   for(fd = 0; fd < NOFILE; fd++){
-  //   if(curproc->ofile[fd]){
-  //     fileclose(curproc->ofile[fd]);
-  //     curproc->ofile[fd] = 0;
-  //   }
-  //   }
-  // }
-
-  for(fd = 0; fd < NOFILE; fd++){
+  // Close all open files. Only the leader thread will be able to close files. All those children threads who have flag CLONE_FILES will not close this files
+  if(!(curproc->flags & CLONE_FILES)){
+    // cprintf("exit: Files are not shared. closing files\n");
+    for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd]){
       fileclose(curproc->ofile[fd]);
       curproc->ofile[fd] = 0;
     }
+    }
   }
+
+  // for(fd = 0; fd < NOFILE; fd++){
+  //   if(curproc->ofile[fd]){
+  //     fileclose(curproc->ofile[fd]);
+  //     curproc->ofile[fd] = 0;
+  //   }
+  // }
   
 
   begin_op();
