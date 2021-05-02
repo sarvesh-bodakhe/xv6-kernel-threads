@@ -224,32 +224,22 @@ void test_matrix_mul(void){
 void dummy(void *argv){
     // sleep(100);
     // printf(1, "dummy\n");
-    for(int i=0;i<50;i++){
-        if((i+1)%10 == 0) printf(1, "%d:%d\n", gettid(), i);
-        sleep(50);
-    }
+    sleep(50);
     exit();
 }
 
 void test_stress(void){
-    printStartTest("TEST STRESS", "No description now");
-    printInfo();
-    // pthread_t thread;
+    printf(1, "stress test: test\n");
     int max = 0;
     int ret = 0;
-    int threads[100] = {0};
+    pthread_t thread[100];
     while(1){
-        // ret = pthread_create(&thread, &dummy, 0, CLONE_THREAD | CLONE_VM);
-        char *stack = malloc(4096);
-         ret = clone(&dummy, 0, stack, CLONE_THREAD | CLONE_VM);
-         threads[max] = ret;
-        // printf(1, "%d ret:%d\n", max, ret);    
+        ret = pthread_create(&thread[max], &dummy, 0, CLONE_THREAD | CLONE_VM);
         if(ret == -1) break;
         max++;
     }
-    printf(1, "max:%d\n", max);
-    for(int i=0;i<max;i++) join(threads[i], 0);
-    printEndTest("TEST STRESS", "", 1);
+    for(int i=0;i<max;i++) pthread_join(thread[i], 0);
+    printf(1, "strss test: max threads:%d ok\n", max);
     return;
 }
 
@@ -372,6 +362,27 @@ void test_fork_wait_01(void){
     pthread_join(tid2,0);
     pthread_join(tid1,0);
     printf(1, "wait in thread for a process created by fork() in another thread: ok\n");
+    return;
+}
+void test_fork_wait_02_util1(void *argv){
+    int pid;
+    if((pid = fork()) == 0){
+        sleep(70);
+        exit();
+    }
+    pthread_t thread;
+    pthread_create(&thread, &test_fork_wait_01_util2, 0, CLONE_THREAD | CLONE_VM);
+    wait();
+    pthread_join(thread, 0);
+    exit();
+}
+
+void test_fork_wait_02(){
+    printf(1, "Combination of pthread_create(), fork(), join() and wait(): test\n");
+    pthread_t t;
+    pthread_create(&t, &test_fork_wait_02_util1, 0 , CLONE_THREAD | CLONE_VM);
+    pthread_join(t,0);
+    printf(1, "Combination of pthread_create(), fork(), join() and wait(): ok\n");
     return;
 }
 
@@ -741,40 +752,65 @@ void test_join_threadNotFound(){
 }
 
 
+int global_var;
 
+void change_global(void *argv){
+    global_var = 100;
+    exit();
+}
+
+void test_CLONE_VM(){
+    printf(1, "clone with CLONE_VM. check for shared memory: test\n");
+    pthread_t t;
+    global_var = 10;
+    pthread_create(&t, &change_global, 0, CLONE_VM | CLONE_THREAD);
+    pthread_join(t, 0);
+    if(global_var == 100) printf(1, "clone with CLONE_VM. check for shared memory: ok\n");
+    else printf(1, "clone with CLONE_VM. check for shared memory: failed\n");
+    return;
+}
+
+void test_CLONE_VM_02(){
+    printf(1, "clone without CLONE_VM: test\n");
+    pthread_t t;
+    global_var = 10;
+    pthread_create(&t, &change_global, 0, 0);
+    pthread_join(t, 0);
+    if(global_var == 10) printf(1, "clone without CLONE_VM: ok\n");
+    else printf(1, "clone with CLONE_VM. check for shared memory: failed\n");
+    return;
+}
 
 int main(){
-
-
-
-    
-    
-
-    
-    
     
     // test_getMethods_01();
     // test_getMethods_02();
-    
-
-    //----------------
+    printf(1 ,"\n");
+    test_stress();
+    test_matrix_mul();
     test_CLONE_NOFLAGS();
     test_CLONE_FILES_01();
     test_CLONE_FS_01();
     test_CLONE_FS_02();
-    
-    test_tgkill_01();
-    test_tgkill_02();
+    test_CLONE_VM();
+    test_CLONE_VM_02();
+    test_CLONE_VM_without_thread();
     test_join01();
     test_join02();
     test_join03();
     test_join_04();
-    test_fork_wait_01();
-    test_matrix_mul();
-    test_pthread();
-    test_CLONE_VM_without_thread();
     test_join_threadNotFound();
+    test_fork_wait_01();
+    test_fork_wait_02();
+    
+    
+    test_pthread();
+    
+    test_tgkill_01();
+    test_tgkill_02();
 
+    
+    
     
 
     exit();
