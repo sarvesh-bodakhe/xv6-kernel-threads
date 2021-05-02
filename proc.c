@@ -257,6 +257,8 @@ exit(void)
       curproc->ofile[fd] = 0;
     }
     }
+  }else{
+    // cprintf("exit: files are being shared. do not close files\n");
   }
 
   // for(fd = 0; fd < NOFILE; fd++){
@@ -294,16 +296,17 @@ exit(void)
       // cprintf("exit(): (tid:%d)->parent == currproc(tid:%d)\n", p->tid, curproc->tid);
       // cprintf("exit(): parent(%d,%d,%d) has child(%d,%d,%d) on which it has not called wait()\n", curproc->tid, curproc->pid, curproc->parent->pid, p->tid, p->pid, p->parent->pid);
       // kill_all_childs();
-      p->parent = initproc;
-      // release(&ptable.lock);
-      // tkill(p->tid);
-      // acquire(&ptable.lock);
-      
+      struct proc *tp;
+      int flag = 0;
+      for(tp = ptable.proc; tp< &ptable.proc[NPROC];tp++){
+        if(tp->pid == curproc->pid && tp->tid != p->tid){
+          cprintf("exit: There are still  threads in thread group of currproc. so they are not abandoned. No p->parent = initproc\n");
+          flag = 1;
+          break;
+        }
+      }
+      if(!flag) p->parent = initproc;
     }
-    // if(p->parent_thread == curproc){
-    //   p->parent = initproc;
-    // }
-
       if(p->state == ZOMBIE) // If this happens then there will zombie error !!!
         wakeup1(initproc);
   }
@@ -333,7 +336,7 @@ wait(void)
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->parent->pid == curproc->pid){
-        // cprintf("wait: thread in tgid(%d) called wait on (%d,%d,%d)\n", curproc->pid,p->tid, p->tid, p->parent->pid);
+        // cprintf("wait:  wait called on (%d,%d,%d)\n", curproc->pid,p->tid, p->tid, p->parent->pid);
         p->wait_caller = curproc;
       }
       else if(p->parent != curproc)
@@ -342,7 +345,7 @@ wait(void)
       //  if(p->parent != curproc)
       //   continue;
       havekids = 1;
-      p->wait_caller = curproc;
+      // p->wait_caller = curproc;
       if(p->state == ZOMBIE){
         // Found one.
         pid = p->pid;
@@ -436,6 +439,7 @@ int join(int thread_id, void *join_ret){
           p->killed = 0;
           p->state = UNUSED;
           p->join_caller = 0;
+          p->wait_caller = 0;
           release(&ptable.lock);
           return tid;
         }
@@ -744,7 +748,8 @@ int clone(void (*fun)(void*), void* argv,void *stack, int flags){
     struct proc *curproc = myproc();
     // cprintf("clone(): flags: %d\n", flags);
     if((np = allocproc()) == 0){
-        panic("allocproc failed\n");
+        // cprintf("allocproc failed\n");
+        // panic("allocproc failed\n");
         return -1;
     }
 
@@ -849,7 +854,7 @@ int clone(void (*fun)(void*), void* argv,void *stack, int flags){
     
       // *(np->ofile) = *(curproc->ofile);
       // np->ofile = curproc->ofile;
-      cprintf("clone: files are shared\n");
+      // cprintf("clone: files are shared\n");
       // for (uint i = 0; i < NOFILE; i++){
       //   if (curproc->ofile[i]){
       //     (np->ofile[i]) = (curproc->ofile[i]);

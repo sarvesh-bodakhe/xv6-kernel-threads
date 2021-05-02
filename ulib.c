@@ -4,15 +4,6 @@
 #include "user.h"
 #include "x86.h"
 
-int thread_create(void (*fun)(void*), void *argv){
-  // char *stack_ptr = (char*)sbrk(4096);
-  // int clone_ret = clone(fun, argv, (void*)stack_ptr);
-  // return clone_ret;
-  return -1;
-}
-int thread_join(int thread_id, void *thread_return){
-  return join(thread_id, thread_return);
-}
 
 char*
 strcpy(char *s, const char *t)

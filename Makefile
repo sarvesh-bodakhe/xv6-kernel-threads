@@ -182,8 +182,7 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_clonetest\
-	_e\
-	_t\
+	_u\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -256,6 +255,7 @@ EXTRA=\
 	printf.c umalloc.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
+	pthread.c\
 
 dist:
 	rm -rf dist
