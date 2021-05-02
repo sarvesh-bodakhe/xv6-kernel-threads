@@ -110,6 +110,7 @@ extern int sys_gettid(void);
 extern int sys_getppid(void);
 extern int sys_tgkill(void);
 extern int sys_printOpenFiles(void);
+extern int sys_getcwdi(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -140,6 +141,7 @@ static int (*syscalls[])(void) = {
 [SYS_getppid]   sys_getppid,
 [SYS_tgkill]   sys_tgkill,
 [SYS_printOpenFiles] sys_printOpenFiles,
+[SYS_getcwdi] sys_getcwdi,
 };
 
 void

@@ -28,3 +28,4 @@
 #define SYS_getppid 26
 #define SYS_tgkill  27
 #define SYS_printOpenFiles 28
+#define SYS_getcwdi 29

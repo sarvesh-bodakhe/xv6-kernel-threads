@@ -21,6 +21,11 @@ struct superblock;
 #define SHARED_FS     2
 #define SHARED_FLIES  4
 
+
+#define EDEADLK 0
+#define EINVAL 1
+#define ESRCH 2
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);
@@ -133,7 +138,7 @@ void            wakeup(void*);
 void            yield(void);
 
 int             clone(void (*fun)(void*),void *argv,void *stack, int flags);
-int             join(int, void*);
+int             join(int, void**);
 int             tkill(int tid);
 int             gettid(void);
 int             getppid(void);

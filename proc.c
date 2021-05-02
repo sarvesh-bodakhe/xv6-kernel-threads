@@ -261,6 +261,13 @@ exit(void)
     // cprintf("exit: files are being shared. do not close files\n");
   }
 
+  if(!(curproc->flags  &CLONE_FS)){
+    begin_op();
+    iput(curproc->cwd);
+    end_op();
+    curproc->cwd = 0;
+  }
+
   // for(fd = 0; fd < NOFILE; fd++){
   //   if(curproc->ofile[fd]){
   //     fileclose(curproc->ofile[fd]);
@@ -269,10 +276,7 @@ exit(void)
   // }
   
 
-  begin_op();
-  iput(curproc->cwd);
-  end_op();
-  curproc->cwd = 0;
+  
 
   acquire(&ptable.lock);
 
@@ -300,7 +304,7 @@ exit(void)
       int flag = 0;
       for(tp = ptable.proc; tp< &ptable.proc[NPROC];tp++){
         if(tp->pid == curproc->pid && tp->tid != p->tid){
-          cprintf("exit: There are still  threads in thread group of currproc. so they are not abandoned. No p->parent = initproc\n");
+          // cprintf("exit: There are still  threads in thread group of currproc. so they are not abandoned. No p->parent = initproc\n");
           flag = 1;
           break;
         }
@@ -379,9 +383,9 @@ wait(void)
 /*  All of the threads in a process are peers: any thread can join
     with any other thread in the process.
 */
-int join(int thread_id, void *join_ret){
+int join(int thread_id, void **join_ret){
     struct proc *p;
-    int haveKids, tid;
+    int haveKids;
     struct proc *curproc = myproc();
     // cprintf("join: curproc(%d,%d,%d) flags:%d joined_thread id: %d\n", curproc->tid, curproc->pid, curproc->parent->pid,curproc->flags,  thread_id);
     acquire(&ptable.lock);
@@ -415,14 +419,28 @@ int join(int thread_id, void *join_ret){
         if(!(p->flags & CLONE_THREAD ) && !(p->flags & CLONE_VM)){
                         
         }
-
+        // if(p->join_caller){
+        //   release(&ptable.lock);
+        //   return EINVAL; //Another thread is already waiting to join with this thread.
+        // }
         // cprintf("join: childThread(%d,%d,%d)\n", p->tid, p->pid, p->parent->pid);      
         haveKids = 1;
+        if(curproc->join_caller == p){
+          cprintf("deadlock detected\n");
+          
+          release(&ptable.lock);
+          tkill(p->tid);
+          int **ptr = (int**)join_ret;
+          **ptr = 4;
+          // cprintf("*join_ret: %d\n", **ptr);
+          exit();
+          return EDEADLK; //Deadlock
+        }
         p->join_caller = curproc;
         if(p->state == ZOMBIE){
           // cprintf("join: childThread(%d,%d,%d) has run completely\n", p->tid, p->pid, p->parent->pid);
           // pid = p->pid;
-          tid = p->tid;
+          // int tid = p->tid;
           kfree((char*)p->kstack);
           p->kstack = 0;
           if(p->flags & CLONE_VM){
@@ -441,18 +459,19 @@ int join(int thread_id, void *join_ret){
           p->join_caller = 0;
           p->wait_caller = 0;
           release(&ptable.lock);
-          return tid;
+          return 0;
         }
       }
 
       if(!haveKids || curproc->killed){
         release(&ptable.lock);
-        return -1;
+        return ESRCH;
       }
       // cprintf("join: childThread is still executing. Calling sleep for parentThread(%d,%d,%d)\n", curproc->tid,curproc->pid,curproc->parent->pid);
       sleep(curproc, &ptable.lock);
     }
-    return -1;
+    
+    return -1; // No thread with the ID thread could be found.
 }
 
 
@@ -747,6 +766,13 @@ int clone(void (*fun)(void*), void* argv,void *stack, int flags){
     struct proc *np;
     struct proc *curproc = myproc();
     // cprintf("clone(): flags: %d\n", flags);
+
+  
+
+    if(((flags&CLONE_VM) || (flags&CLONE_THREAD) || (flags&CLONE_FS)) && !(flags&CLONE_THREAD) ){
+      return -1;
+    }
+
     if((np = allocproc()) == 0){
         // cprintf("allocproc failed\n");
         // panic("allocproc failed\n");
@@ -755,84 +781,38 @@ int clone(void (*fun)(void*), void* argv,void *stack, int flags){
 
   if(flags & CLONE_PARENT) {
       np->parent = curproc->parent;
-  } else{
+  }else{
       np->parent = curproc;
   }
     
 
-    if(flags & CLONE_THREAD){
-      /*  @desc: CLONE_THREAD flag set
-            child is placed in the same thread group as the calling process.
-            i.e. child->pid = calling->pid (= TGID)
-            
-            1.  allocproc has incremented global pid count. Make sure to decrement it. (WRONG)
-                if done as mentioned above, in a single-threaded process, threadId and processID will be different. 
-                which is not as per the man page of gettid()
-
-            2.  When a CLONE_THREAD thread terminates, the thread that created it is not sent a SIGCHLD (or other termination) signal; nor can the status of such a thread
-                be obtained using wait(2).  (The thread is said to be detached.)
-      */
+  if(flags & CLONE_THREAD){
       np->pid = curproc->pid;
       np->parent = curproc->parent;
       np->join_caller = curproc;
-    }else{
-      /*  @desc: CLONE_THREAD flag set
-            child is placed in a new thread group whose TGID is the same as thread's TID.
-            Child thread is the leader of new thread group.          
-            
-      */
-      //Do Nothing
+  }else{
       np->parent = curproc;
-    }
+  }
 
-
-  // shared_resources
-
-    
-
-    
-
-    // if !CLONE_VM
-    // if( (new_thread->pgdir = copyuvm_thread(parent_thread->pgdir, parent_thread->sz)) == 0){
-    //     kfree(new_thread->kstack);
-    //     new_thread->kstack = 0;
-    //     new_thread->state = UNUSED;
-    //     return -1;
-    // }
-    if(flags & CLONE_VM){
-      // cprintf("CLONE_VM\n");
-      /*  @desc: CLONE_VM flag set.
-              Calling process and child process runs in the same memory space.(sharing).
-              Memory writes performed by the calling process or child process are also visible
-              to other process.
-      */
+  if(flags & CLONE_VM){
       np->pgdir = curproc->pgdir;
       np->shared_resources = np->shared_resources | SHARED_VM;
-    }
-      else
-      {
-        /* @desc: CLONE_VM flag not set.
-            Make a copy of memory layout of curproc and pass it to np. (same as fork)
-            After this memory writes performed by any of the processes do not affect each other.
-      */
-        // cprintf("Not CLONE_VM\n");
-        if ((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0)
-        {
+  }
+  else{
+    if ((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0)
+    {
           kfree(np->kstack);
           np->kstack = 0;
           np->state = UNUSED;
           return -1;
-        }
-      }
+    }
+  }
 
     np->sz = curproc->sz;
-
     uint ustack[2];
     ustack[0] = 0xffffffff;
     ustack[1] = (uint)argv;
-
     *np->tf = *curproc->tf;
-    
     uint sp = (uint)stack + PGSIZE;
     np->tf->esp = sp;
     np->tf->esp -= 8;
@@ -844,65 +824,13 @@ int clone(void (*fun)(void*), void* argv,void *stack, int flags){
       goto bad;
     }
 
-    if(flags & CLONE_FILES){
-      /* @desc: if CLONE_FILE is set
-            the calling process and the child process share the same file descriptor table.
-            Any file descriptor created by the calling  process  or  by  the  child process 
-            is also valid in the other process.
+    for (uint i = 0; i < NOFILE; i++)
+      if (curproc->ofile[i])
+        np->ofile[i] = filedup(curproc->ofile[i]);
 
-      */
-    
-      // *(np->ofile) = *(curproc->ofile);
-      // np->ofile = curproc->ofile;
-      // cprintf("clone: files are shared\n");
-      // for (uint i = 0; i < NOFILE; i++){
-      //   if (curproc->ofile[i]){
-      //     (np->ofile[i]) = (curproc->ofile[i]);
-      //   }
-      // }
-      for (uint i = 0; i < NOFILE; i++)
-        if (curproc->ofile[i])
-          np->ofile[i] = filedup(curproc->ofile[i]);
-      
-      
-
-    }else{
-      /* @descL if CLONE_FILE is not set
-        the child process make a copy of all file descriptors opened in the calling process
-        Operations like open/close/change file desciptor flags, by either the calling or 
-        child process do not affect the other process.
-        Also done in fork() 
-      */
-      for (uint i = 0; i < NOFILE; i++)
-        if (curproc->ofile[i])
-          np->ofile[i] = filedup(curproc->ofile[i]);
-    }
-
-    // cprintf("Open Files for curproc: ");
-    // for(int i=0;i<NOFILE; i++){
-    //   cprintf("%p ", (curproc->ofile[i]) );
-    // }
-    // cprintf("\n");
-
-    // cprintf("Open Files for np: ");
-    // for(int i=0;i<NOFILE; i++){
-    //   cprintf("%p ", np->ofile[i]);
-    // }
-    // cprintf("\n");
-    
-    if(flags & CLONE_FS){
-      np->cwd = curproc->cwd;
-    }else{
-      np->cwd = idup(curproc->cwd);
-    }
-    // for (uint i = 0; i < NOFILE; i++)
-    //   if (curproc->ofile[i])
-    //     np->ofile[i] = filedup(curproc->ofile[i]);
-    // np->cwd = idup(curproc->cwd);
-
+    np->cwd = idup(curproc->cwd);
 
     np->flags = flags;
-    // if(np->flags & CLONE_FILES) cprintf("clone: files are shared\n");
     tid = np->tid;
     acquire(&ptable.lock);
     np->state = RUNNABLE;

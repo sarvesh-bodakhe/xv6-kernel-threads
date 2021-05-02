@@ -36,3 +36,4 @@ SYSCALL(gettid)
 SYSCALL(getppid)
 SYSCALL(tgkill)
 SYSCALL(printOpenFiles);
+SYSCALL(getcwdi);

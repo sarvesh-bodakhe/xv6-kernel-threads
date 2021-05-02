@@ -21,6 +21,7 @@
 #include "x86.h"
 // #include "proc.h"
 
+
 extern struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -447,6 +448,26 @@ sys_chdir(void)
   iput(curproc->cwd);
   end_op();
   curproc->cwd = ip;
+
+  if(curproc->flags & CLONE_FS){
+    acquire(&ptable.lock);
+  struct proc *p;
+  for(p = ptable.proc; p< &ptable.proc[NPROC];p++){
+    if((curproc->flags & CLONE_FS) && (p->pid == curproc->pid)){
+        if(p->pid == p->tid){ //Thread is the leader of thread group. Descriptor table of this thread is shared in childs with CLONE_FILES
+        // cprintf("fdalloc currproc(%d,%d,%d):  p(%d,%d,%d) is a parent of thread group\n", curproc->tid, curproc->pid, curproc->parent->pid,p->tid, p->pid, p->parent->pid);
+          p->cwd = ip;
+        }
+        else if((p->flags & CLONE_FILES) && (p->tid != curproc->tid)){ // Thread is a normal thread in thread group which was crated with CLONE_FILES
+        // cprintf("fdalloc currproc(%d,%d,%d):  p(%d,%d,%d) is a normal thread of thread group\n", curproc->tid, curproc->pid, curproc->parent->pid,p->tid, p->pid, p->parent->pid);
+          p->cwd = ip;
+        }
+      }
+  }
+  release(&ptable.lock);
+  }
+  
+
   return 0;
 }
 
@@ -508,4 +529,10 @@ int sys_printOpenFiles(void){
     if(curproc->ofile[i]) cprintf("%d:%p ", i,curproc->ofile[i]);
   cprintf("\n");
   return 0;
+}
+
+int sys_getcwdi(void){
+  struct proc *curproc;
+  curproc = myproc();
+  return curproc->cwd->inum;
 }
